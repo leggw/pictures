@@ -110,6 +110,10 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
+    // Dynamically determine log path
+    const pageId = window.location.pathname.split("/").pop().replace(".html", "");
+    const logRef = db.ref(`${pageId}_logs`);
+
     function logLocation() {
       if (!navigator.geolocation) {
         alert("Geolocation not supported.");
@@ -122,7 +126,7 @@
           const lon = position.coords.longitude.toFixed(5);
           const time = new Date().toISOString();
 
-          db.ref("pic001_logs").push({ lat, lon, time });
+          logRef.push({ lat, lon, time });
           alert("Thanks! Your location was logged.");
         },
         () => {
@@ -136,14 +140,14 @@
     const logTable = document.getElementById("log-table");
     const logBody = document.getElementById("log-body");
 
-    db.ref("pic001_logs").on("value", (snapshot) => {
+    logRef.on("value", (snapshot) => {
       const logs = snapshot.val();
       if (!logs) return;
 
-      // Clear current table
+      // clear current table
       logBody.innerHTML = "";
 
-      // Convert logs to array and sort by time DESC
+      // convert logs to array and sort by time DESC
       const logArray = Object.values(logs).sort((a, b) => new Date(b.time) - new Date(a.time));
 
       logArray.forEach(entry => {
