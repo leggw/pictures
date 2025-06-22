@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Image Drop 002 — Will Legg</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 2rem;
+      background-color: #f9f9f9;
+    }
+
+    .image-container img {
+      width: 90%;
+      max-width: 1000px;
+      height: auto;
+      /* border-radius: 8px; */
+      /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); */
+    }
+
+    .info {
+      margin-bottom: 2rem;
+    }
+
+    a {
+      color: #007acc;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+    #location-log {
+      margin: 1rem;
+
+    }
+
+    #log-table {
+      margin: 1rem auto;
+      border-collapse: collapse;
+      width: 90%;
+      max-width: 600px;
+    }
+
+    #log-table th,
+    #log-table td {
+      border: 1px solid #ccc;
+      padding: 0.75rem;
+      text-align: center;
+    }
+
+    #log-table th {
+      background-color: #f0f0f0;
+      font-weight: bold;
+    }
+
+    #log-header {
+      margin-top: 2rem;
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+
+    button {
+      margin-top: 1rem;
+      padding: 0.6rem 1.2rem;
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="info">
+    <h1>Howdy, I'm Will Legg</h1>
+    <p>You found this thing I made. I've included a high-res version of a picture I took so you can download it or whatever, if you want.</p>
+    <p><a href="https://www.wlegg.com" target="_blank">Visit my full website</a></p>
+  </div>
+
+  <div id="location-log">
+    <button onclick="logLocation()">Log where/when you were when you scanned this tag</button>
+    <p id="log-header" style="display: none;">Last known scan time/location for this piece:</p>
+    <table id="log-table" style="display:none;">
+      <thead>
+        <tr><th>Time</th><th>Location</th></tr>
+      </thead>
+      <tbody id="log-body"></tbody>
+    </table>
+    <br>
+  </div>
+
+  <div class="image-container">
+    <img src="images/Pic004.jpg" alt="Pic 004">
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCmuI0NMqrAh9F40K-kg4cQ53K91pR9v9M",
+      authDomain: "photodrop-12ba7.firebaseapp.com",
+      projectId: "photodrop-12ba7",
+      storageBucket: "photodrop-12ba7.firebasestorage.app",
+      messagingSenderId: "186085185354",
+      appId: "1:186085185354:web:47dc95a95f8f2bbd0a93b3",
+      measurementId: "G-6L44N7LZE6",
+      databaseURL: "https://photodrop-12ba7-default-rtdb.firebaseio.com" 
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Dynamically determine log path
+    const pageId = window.location.pathname.split("/").pop().replace(".html", "");
+    const logRef = db.ref(`${pageId}_logs`);
+
+    function logLocation() {
+      if (!navigator.geolocation) {
+        alert("Geolocation not supported.");
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude.toFixed(5);
+          const lon = position.coords.longitude.toFixed(5);
+          const time = new Date().toISOString();
+
+          logRef.push({ lat, lon, time });
+          alert("Thanks! Your location was logged.");
+        },
+        () => {
+          alert("Permission denied or failed to get location.");
+        }
+      );
+    }
+  </script>
+
+  <script>
+    const logTable = document.getElementById("log-table");
+    const logBody = document.getElementById("log-body");
+
+    logRef.on("value", (snapshot) => {
+      const logs = snapshot.val();
+      if (!logs) return;
+
+      // clear current table
+      logBody.innerHTML = "";
+
+      // convert logs to array and sort by time DESC
+      const logArray = Object.values(logs).sort((a, b) => new Date(b.time) - new Date(a.time));
+
+      logArray.forEach(entry => {
+        const row = document.createElement("tr");
+
+        const timeCell = document.createElement("td");
+        timeCell.textContent = new Date(entry.time).toLocaleString();
+
+        const locCell = document.createElement("td");
+        locCell.innerHTML = `<a href="https://maps.google.com/?q=${entry.lat},${entry.lon}" target="_blank">${entry.lat}, ${entry.lon}</a>`;
+
+        row.appendChild(timeCell);
+        row.appendChild(locCell);
+        logBody.appendChild(row);
+      });
+
+      logTable.style.display = "table";
+      document.getElementById("log-header").style.display = "block";
+    });
+  </script>
+</body>
+</html>
